@@ -14,22 +14,22 @@
 /*
  * Abstract class which manages an RCCar. Needs to define update() in order to work properly.
  */
-class RCCar {
+class RC_Car {
 public:
-	RCCar();
-	virtual ~RCCar();
+	RC_Car();
+	virtual ~RC_Car();
 
 	void engineOn();
 	void EngineOff();//Use this to stop the motor in case of emergency
 	bool setUpdateCycle(uint16_t milliseconds);//How long between update() calls
 
 	void turn(int16_t val);//accepts all values of unsigned short
-	void forward(uint8_t val);
-	void backward(uint8_t val);
+	void forward(int16_t val);
+	void backward(int16_t val);
 	void stop();
 
 protected:
-	virtual void update() = 0;//Hardware specific
+	virtual void update() = 0;//Hardware specific, needs implementation
 
 	volatile float servoPw_;
 	volatile uint8_t speed_;

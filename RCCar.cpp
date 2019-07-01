@@ -10,12 +10,17 @@
 #include <iostream>
 #include <unistd.h>
 
-float RCCAR_CPP_map(int x, int in_min, int in_max, float out_min, float out_max)
+float RCCAR_CPP_servoMap(int x, int in_min, int in_max, float out_min, float out_max)
 {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-RCCar::RCCar():
+uint16_t RCCAR_CPP_motorMap(int x, int in_min, int in_max, uint16_t out_min, uint16_t out_max)
+{
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+RC_Car::RC_Car():
 			servoPw_(1.5),
 			speed_(0),
 			goingForward_(true),
@@ -24,41 +29,37 @@ RCCar::RCCar():
 			updateThread_(0){
 }
 
-RCCar::~RCCar() {
+RC_Car::~RC_Car() {
 	if(engineIsOn_)
 		EngineOff();
 }
 
-void RCCar::turn(int16_t val) {
-	servoPw_ = RCCAR_CPP_map(val, INT16_MIN, INT16_MAX, servoMinPW, servoMaxPW);
+void RC_Car::turn(int16_t val) {
+	servoPw_ = RCCAR_CPP_servoMap(val, INT16_MIN, INT16_MAX, servoMinPW, servoMaxPW);
 }
 
-void RCCar::forward(uint8_t val) {
+void RC_Car::forward(int16_t val) {
 	goingForward_ = true;
-	if(val > 100)
-		val = 100;
-	speed_ = val;
+	speed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
 }
 
-void RCCar::backward(uint8_t val) {
+void RC_Car::backward(int16_t val) {
 	goingForward_ = false;
-	if(val > 100)
-		val = 100;
-	speed_ = val;
+	speed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
 }
 
-void RCCar::stop() {
+void RC_Car::stop() {
 	speed_ = 0;
 }
 
-void RCCar::engineOn() {
+void RC_Car::engineOn() {
 	if(!updateThread_){
 		engineIsOn_ = true;
-		updateThread_ = new std::thread(&RCCar::loop, this);
+		updateThread_ = new std::thread(&RC_Car::loop, this);
 	}
 }
 
-void RCCar::EngineOff() {
+void RC_Car::EngineOff() {
 	speed_ = 0;
 	servoPw_ = 1.5;
 	engineIsOn_ = false;
@@ -70,7 +71,7 @@ void RCCar::EngineOff() {
 		std::cout << "Unable to shut down engine!!" << std::endl;
 }
 
-bool RCCar::setUpdateCycle(uint16_t milliseconds) {
+bool RC_Car::setUpdateCycle(uint16_t milliseconds) {
 	if(engineIsOn_){
 		EngineOff();
 		updateCycle_ = milliseconds;
@@ -81,18 +82,18 @@ bool RCCar::setUpdateCycle(uint16_t milliseconds) {
 	return true;
 }
 
-void RCCar::loop() {
+void RC_Car::loop() {
 	while(engineIsOn_){
 		update();
 		usleep(updateCycle_ * 1000);
 	}
 }
 
-void RCCar::setServoMinPw(float servoMinPw) {
+void RC_Car::setServoMinPw(float servoMinPw) {
 	servoMinPW = servoMinPw;
 }
 
-void RCCar::setServoMaxPw(float servoMaxPw) {
+void RC_Car::setServoMaxPw(float servoMaxPw) {
 	servoMaxPW = servoMaxPw;
 }
 

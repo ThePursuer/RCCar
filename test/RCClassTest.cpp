@@ -34,20 +34,21 @@ TEST_F(RCCarFixture, setMinMaxServoPulseWidth){
 }
 
 TEST_F(RCCarFixture, accelerateTest){
-	test_car.forward(100);
-	ASSERT_EQ(100, test_car.getSpeed());
+	test_car.forward(INT16_MAX);
+	ASSERT_EQ(UINT8_MAX, test_car.getSpeed());
 	ASSERT_TRUE(test_car.getGoingForward());
 
-	test_car.backward(100);
-	ASSERT_EQ(100, test_car.getSpeed());
+	test_car.backward(INT16_MAX);
+	ASSERT_EQ(UINT8_MAX, test_car.getSpeed());
 	ASSERT_FALSE(test_car.getGoingForward());
 
-	test_car.forward(UINT8_MAX);
-	ASSERT_EQ(100, test_car.getSpeed());
+	test_car.forward(0);
+	ASSERT_EQ(UINT8_MAX / 2, test_car.getSpeed());
 	ASSERT_TRUE(test_car.getGoingForward());
 
-	test_car.backward(UINT8_MAX);
-	ASSERT_EQ(100, test_car.getSpeed());
+
+	test_car.backward(INT16_MIN);
+	ASSERT_EQ(0, test_car.getSpeed());
 	ASSERT_FALSE(test_car.getGoingForward());
 }
 

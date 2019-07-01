@@ -10,23 +10,8 @@
 
 #include <gtest/gtest.h>
 #include "RCCar.h"
+#include "RCCarImplementation.h"
 
-class TestRCCar : public RCCar{
-public:
-	float getServoPW() const {return servoPw_;}
-	uint8_t getSpeed() const {return speed_;}
-	bool getGoingForward() const {return goingForward_;}
-	int getUpdateCalledTimes() const {return updateCalled;}
-
-	void setPWForTesting(float min, float max){
-		setServoMaxPw(max);
-		setServoMinPw(min);
-	}
-
-	void update() override {++updateCalled;}//todo mock this function when I get out of China and can actually read the gmock documentation
-private:
-	int updateCalled = 0;
-};
 
 class RCCarFixture : public ::testing::Test {
 protected:
