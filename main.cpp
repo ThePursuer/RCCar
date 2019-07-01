@@ -3,16 +3,29 @@
  *      Author: thepursuer
  */
 
-#include "RCCar.h"
-
 #include <iostream>
 #include <unistd.h>
 
 #include <pca9685.h>
 #include <wiringPi.h>
 
+#include <sys/stat.h>
+#include <linux/joystick.h>
+#include <fcntl.h>
+
+#include "RCCar.h"
+#include "RCController.h"
+
 using namespace std;
 
+//Main related
+bool run = true;
+
+//Utility
+#define ERROR(msg) do {cout << "ERROR: " << msg << endl;} while(0)
+#define INFO(msg) do {cout << "INFO: " << msg << endl;} while(0)
+
+//PCA9685 related
 #define PIN_BASE 300
 #define SERVO_PIN PIN_BASE
 #define MOTOR_PIN (PIN_BASE + 1)
@@ -24,16 +37,23 @@ using namespace std;
 
 int pca9685FD;
 
+//Joystick related
+#define JOYSTICK_FILENAME "/dev/input/js0"
+int joystickfd = -1;
+
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
  */
-int calcTicks(float impulseMs, int hertz)
+int calcTicks(float impulseMs)
 {
-	float cycleMs = 1000.0f / hertz;
+	float cycleMs = 1000.0f / HERTZ;
 	return (int)(MAX_PWM * impulseMs / cycleMs + 0.5f);
 }
 
-class MyRCCar: public RCCar{
+/*
+ * Implement an RC Car
+ */
+class MyRCCar: public RC_Car{
 public:
 	MyRCCar(){
 		setServoMaxPw(SERVO_MAX_PW);
@@ -43,7 +63,7 @@ public:
 protected:
 	void update(){
 		std::cout << servoPw_ << std::endl;
-		pwmWrite(SERVO_PIN, calcTicks(servoPw_, HERTZ));
+		pwmWrite(SERVO_PIN, calcTicks(servoPw_));
 	}
 };
 
@@ -60,29 +80,49 @@ int main(int argc, char **argv) {
 	pca9685FD = pca9685Setup(PIN_BASE, 0x40, HERTZ);
 	if (pca9685FD < 0)
 	{
-		printf("Error in setup\n");
+		ERROR("Error in setup\n");
 		return pca9685FD;
 	}
 
 	// Reset all output
 	pca9685PWMReset(pca9685FD);
 
-	/********************
-	 * Set up the RCCar *
-	 ********************/
+	/**************************
+	 * Open the Joystick file *
+	 **************************/
 
-	MyRCCar myCar;
-	myCar.setUpdateCycle(50);
-	myCar.engineOn();
-
-	for(int i = 0; i < 10; i++){
-		if(i % 2 == 0)
-			myCar.turn(INT16_MIN);
-		else
-			myCar.turn(INT16_MAX);
-		sleep(1);
+	joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
+	if(joystickfd < 0)
+	{
+		ERROR("Could not open joystick file");
+		return 1;
 	}
 
+	/************************************
+	 * Set up the RC_Car and Controller *
+	 ************************************/
+
+	std::shared_ptr<MyRCCar> myCar = make_shared<MyRCCar>();
+	myCar->setUpdateCycle(50);
+	myCar->engineOn();
+
+	RC_Controller controller(myCar);
+
+	/***********************
+	 * Start the main loop *
+	 ***********************/
+
+	struct js_event jsEvent;
+	while(run){
+		while(read(joystickfd, &jsEvent, sizeof(jsEvent)))
+			controller.handleJoystickEvent(jsEvent);
+	}
+
+	/***********
+	 * Cleanup *
+	 ***********/
+
+	close(joystickfd);
 	return 0;
 }
 
