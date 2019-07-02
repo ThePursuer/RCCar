@@ -35,8 +35,8 @@ protected:
 	volatile uint8_t speed_;
 	volatile bool goingForward_;
 
-	void setServoMaxPw(float servoMaxPw = 2.0);
-	void setServoMinPw(float servoMinPw = 1.0);
+	void setServoMaxPw(float servoMaxPw);
+	void setServoMinPw(float servoMinPw);
 
 private:
 	void loop();

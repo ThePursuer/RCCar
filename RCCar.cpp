@@ -21,7 +21,7 @@ uint16_t RCCAR_CPP_motorMap(int x, int in_min, int in_max, uint16_t out_min, uin
 }
 
 RC_Car::RC_Car():
-			servoPw_(1.5),
+			servoPw_((servoMaxPW + servoMinPW) / 2),
 			speed_(0),
 			goingForward_(true),
 			engineIsOn_(false),
@@ -61,11 +61,12 @@ void RC_Car::engineOn() {
 
 void RC_Car::EngineOff() {
 	speed_ = 0;
-	servoPw_ = 1.5;
+	servoPw_ = (servoMaxPW + servoMinPW) / 2;
 	engineIsOn_ = false;
 	if(updateThread_ && updateThread_->joinable()){
 		updateThread_->join();
 		delete updateThread_;
+		update();//Update the car one last time to ensure restoring the car to starting state.
 	}
 	else
 		std::cout << "Unable to shut down engine!!" << std::endl;
