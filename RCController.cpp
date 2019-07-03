@@ -8,6 +8,11 @@
 #include "RCController.h"
 #include <string.h>
 
+struct joystickTriggers{
+	int16_t rightTrigger;
+	int16_t leftTrigger;
+};
+
 RC_Controller::RC_Controller(std::shared_ptr<RC_Car> rc):
 	rc_(rc)
 {
@@ -21,10 +26,20 @@ void RC_Controller::handleJoystickEvent(js_event event){
         		rc_->turn(event.value);
         		break;
         	case 5://Right Trigger
-        		rc_->forward(event.value);
+        		if(js_.leftTrigger == INT16_MIN)//Make sure we arnt holding both triggers
+        			rc_->forward(event.value);
+        		else
+        			rc_->forward(INT16_MIN);
+
+        		js_.rightTrigger = event.value;
         		break;
         	case 2://Left Trigger
-        		rc_->backward(event.value);
+        		if(js_.rightTrigger == INT16_MIN)//Make sure we arnt holding both triggers
+        			rc_->backward(event.value);
+        		else
+        			rc_->forward(INT16_MIN);
+
+        		js_.leftTrigger = event.value;
         		break;
         	default:
         		break;
