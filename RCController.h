@@ -19,7 +19,11 @@ public:
 
 	void handleJoystickEvent(js_event event);
 private:
-	struct joystickTriggers js_;
+	struct joystickTriggers{
+		int16_t rightTrigger = INT16_MIN;
+		int16_t leftTrigger = INT16_MIN;
+	} js_;
+
 	std::shared_ptr<RC_Car> rc_;
 };
 

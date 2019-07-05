@@ -66,7 +66,6 @@ void RC_Car::EngineOff() {
 	if(updateThread_ && updateThread_->joinable()){
 		updateThread_->join();
 		delete updateThread_;
-		update();//Update the car one last time to ensure restoring the car to starting state.
 	}
 	else
 		std::cout << "Unable to shut down engine!!" << std::endl;
