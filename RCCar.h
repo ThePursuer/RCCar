@@ -32,11 +32,14 @@ protected:
 	virtual void update() = 0;//Hardware specific, needs implementation
 
 	volatile float servoPw_;
-	volatile uint8_t speed_;
+	volatile int speed_;
 	volatile bool goingForward_;
 
 	void setServoMaxPw(float servoMaxPw);
 	void setServoMinPw(float servoMinPw);
+
+	void setMaxSpeed(int speed);
+	void setMinSpeed(int speed);
 
 private:
 	void loop();
@@ -45,8 +48,11 @@ private:
 	uint16_t updateCycle_;
 	std::thread *updateThread_;
 
-	float servoMinPW = 1.0;
-	float servoMaxPW = 2.0;
+	float servoMinPW_ = 1.0;
+	float servoMaxPW_ = 2.0;
+
+	int maxSpeed_ = 255;
+	int minSpeed_ = 0;
 };
 
 #endif /* RCCAR_H_ */
