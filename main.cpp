@@ -110,10 +110,12 @@ int main(int argc, char **argv) {
 	 **************************/
 
 	joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
-	if(joystickfd < 0)
+	while(joystickfd < 0)
 	{
-		ERROR("Could not open joystick file");
-		return 1;
+		ERROR("Could not open joystick file... Retrying");
+		joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
+
+		sleep(2);
 	}
 
 	/************************************

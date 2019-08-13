@@ -14,3 +14,5 @@ add_executable(gtest_RCCar EXCLUDE_FROM_ALL ${ALL_SOURCES} ${TEST_SOURCES})
 target_include_directories(gtest_RCCar PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(gtest_RCCar -lgtest -pthread)
 
+#Install
+install(TARGETS RCCar DESTINATION "/usr/local/bin")
