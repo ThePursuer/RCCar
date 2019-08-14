@@ -18,6 +18,7 @@
 #include "RCCar.h"
 #include "RCController.h"
 #include "Tachometer.h"
+#include "EngineSoundThread.h"
 
 using namespace std;
 
@@ -77,6 +78,11 @@ void tachometerCallback_wrapper(){
 #define FIFTH_MIN (MAX_PWM * 0.4)
 #define SIXTH_MIN (MAX_PWM * 0.5)
 
+//Sounds related
+#define BUZZER_PIN 36
+#define MAX_SIMULATED_RPM 7500
+#define SIMULATED_IDLE_RPM 800
+
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
  */
@@ -100,16 +106,23 @@ public:
 		tach_(tach),
 		realSpeed_(),
 		engineSpeed_(),
-		previousGear_(){
-		setServoMaxPw(SERVO_MAX_PW);
-		setServoMinPw(SERVO_MIN_PW);
+		engineSoundSpeed_(),
+		previousGear_(),
+		engineSounds(BUZZER_PIN, MAX_SIMULATED_RPM)
+		{
+			setServoMaxPw(SERVO_MAX_PW);
+			setServoMinPw(SERVO_MIN_PW);
 
-		setMaxSpeed(MAX_PWM);
-	}
+			setMaxSpeed(MAX_PWM);
+
+			std::thread t(&EngineSoundThread::run, &engineSounds);
+			t.detach();
+		}
 
 	void updateSpeed(int rpm){ realSpeed_ = intMap(rpm, 0, EST_MAX_RPM, 0, MAX_PWM); }
 
 protected:
+	EngineSoundThread engineSounds;
 
 	void update(){
 		//Update speed from tachometer
@@ -135,56 +148,76 @@ protected:
 		switch (gear_){
 		case -1:
 			engineSpeed_ = std::min<int>(engineSpeed_, REVERSE_MAX);
+			engineSoundSpeed_ = intMap(engineSpeed_, REVERSE_MIN, REVERSE_MAX, 0, MAX_SIMULATED_RPM);
 			break;
 		case 0:
-			engineSpeed_ = 0;
+			engineSpeed_ = std::min<int>(engineSpeed_, FIRST_MAX);
+			engineSoundSpeed_ = intMap(engineSpeed_, 0, FIRST_MAX, 0, MAX_SIMULATED_RPM);
 			break;
 		case 1:
 			engineSpeed_ = std::min<int>(engineSpeed_, FIRST_MAX);
+			engineSoundSpeed_ = intMap(engineSpeed_, FIRST_MIN, FIRST_MAX, 0, MAX_SIMULATED_RPM);
 			break;
 		case 2:
 			if(engineSpeed_ < SECOND_MIN)
 				gear_--;
-			else
+			else{
 				engineSpeed_ = std::min<int>(engineSpeed_, SECOND_MAX);
+				engineSoundSpeed_ = intMap(engineSpeed_, SECOND_MIN, SECOND_MAX, 0, MAX_SIMULATED_RPM);
+			}
 			break;
 		case 3:
 			if(engineSpeed_ < THIRD_MIN)
 				gear_--;
-			else
+			else{
 				engineSpeed_ = std::min<int>(engineSpeed_, THIRD_MAX);
+				engineSoundSpeed_ = intMap(engineSpeed_, THIRD_MIN, THIRD_MAX, 0, MAX_SIMULATED_RPM);
+			}
 			break;
 		case 4:
 			if(engineSpeed_ < FOURTH_MIN)
 				gear_--;
-			else
+			else{
 				engineSpeed_ = std::min<int>(engineSpeed_, FOURTH_MAX);
+				engineSoundSpeed_ = intMap(engineSpeed_, FOURTH_MIN, FOURTH_MAX, 0, MAX_SIMULATED_RPM);
+			}
 			break;
 		case 5:
 			if(engineSpeed_ < FIFTH_MIN)
 				gear_--;
-			else
+			else{
 				engineSpeed_ = std::min<int>(engineSpeed_, FIFTH_MAX);
+				engineSoundSpeed_ = intMap(engineSpeed_, FIFTH_MIN, FIFTH_MAX, 0, MAX_SIMULATED_RPM);
+			}
 			break;
 		case 6:
 			if(engineSpeed_ < SIXTH_MIN)
 				gear_--;
-			else
+			else{
 				engineSpeed_ = std::min<int>(engineSpeed_, SIXTH_MAX);
+				engineSoundSpeed_ = intMap(engineSpeed_, SIXTH_MIN, SIXTH_MAX, 0, MAX_SIMULATED_RPM);
+			}
 			break;
 		default:
 			ERROR("GEAR UNRECOGNIZED");
 			break;
 		}
 
-		pwmWrite(L298N_EN_PIN, engineSpeed_);
+		if(gear_ == 0)
+			pwmWrite(L298N_EN_PIN, 0);
+		else
+			pwmWrite(L298N_EN_PIN, engineSpeed_);
 
 		previousGear_ = gear_;
+
+		engineSoundSpeed_ = std::max(engineSoundSpeed_, SIMULATED_IDLE_RPM);
+		engineSounds.updateSpeed(engineSoundSpeed_);
 	}
 private:
 	shared_ptr<Tachometer> tach_;
 
 	int engineSpeed_;
+	int engineSoundSpeed_;
 	int realSpeed_;
 
 	int previousGear_;
@@ -201,6 +234,7 @@ int main(int argc, char **argv) {
 
 	pinMode(L298N_HBRIDGE1_PIN, OUTPUT);
 	pinMode(L298N_HBRIDGE2_PIN, OUTPUT);
+	pinMode(BUZZER_PIN, OUTPUT);
 
 	// Setup with pinbase 300 and i2c location 0x40
 	pca9685FD = pca9685Setup(PIN_BASE, 0x40, HERTZ);

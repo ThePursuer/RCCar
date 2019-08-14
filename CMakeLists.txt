@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 
 project (RCCar)
 
-set(ALL_SOURCES RCCar.cpp RCController.cpp Tachometer.cpp)
+set(ALL_SOURCES RCCar.cpp RCController.cpp Tachometer.cpp EngineSoundThread.cpp)
 
 #Normal Build
 add_executable(RCCar ${ALL_SOURCES} main.cpp)
