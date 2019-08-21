@@ -4,17 +4,19 @@
  */
 
 #include <iostream>
-#include <unistd.h>
+#include <functional>
 
 #include <pca9685.h>
 #include <wiringPi.h>
 
+#include <unistd.h>
 #include <sys/stat.h>
 #include <linux/joystick.h>
 #include <fcntl.h>
 
 #include "RCCar.h"
 #include "RCController.h"
+#include "Tachometer.h"
 
 using namespace std;
 
@@ -45,6 +47,16 @@ int joystickfd = -1;
 #define L298N_HBRIDGE2_PIN 40 //GPIO21
 #define L298N_EN_PIN (PIN_BASE + 1)
 
+//Tachometer
+#define TACHOMETER_PIN 35
+std::function<void(void)> tachometerCallback;
+void tachometerCallback_wrapper(){
+	//We cannot pass the Tachomter function directly to wiring pi because of "ruuuules, shhhlerp <pushes up his glasses>"..,
+	//so we will wrap it in this function and pass the wrapper insted
+	//Screw the rules, I have money!
+	tachometerCallback();
+}
+
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
  */
@@ -59,17 +71,23 @@ int calcTicks(float impulseMs)
  */
 class MyRCCar: public RC_Car{
 public:
-	MyRCCar(){
+	MyRCCar(shared_ptr<Tachometer> tach): tach_(tach),
+	realSpeed_(0){
 		setServoMaxPw(SERVO_MAX_PW);
 		setServoMinPw(SERVO_MIN_PW);
 
 		setMaxSpeed(MAX_PWM);
 	}
 
+	void updateSpeed(int newSpeed){ realSpeed_ = newSpeed; }
+
 protected:
 	void update(){
+
+		//Update steering
 		pwmWrite(SERVO_PIN, calcTicks(servoPw_));
 
+		//Update velocity
 		if(goingForward_) {
 			digitalWrite(L298N_HBRIDGE1_PIN, HIGH);
 			digitalWrite(L298N_HBRIDGE2_PIN, LOW);
@@ -79,7 +97,12 @@ protected:
 			digitalWrite(L298N_HBRIDGE2_PIN, HIGH);
 		}
 		pwmWrite(L298N_EN_PIN, speed_);
+
 	}
+private:
+	shared_ptr<Tachometer> tach_;
+
+	int realSpeed_;
 };
 
 int main(int argc, char **argv) {
@@ -122,7 +145,14 @@ int main(int argc, char **argv) {
 	 * Set up the RC_Car and Controller *
 	 ************************************/
 
-	shared_ptr<MyRCCar> myCar = make_shared<MyRCCar>();
+	//Start with the tachometer
+	shared_ptr<Tachometer> tach = make_shared<Tachometer>(1000);
+	pinMode(TACHOMETER_PIN, INPUT);
+	//Set the callback and pass the wrapper function
+	tachometerCallback = bind(&Tachometer::pulse, tach);
+	wiringPiISR(TACHOMETER_PIN, INT_EDGE_FALLING, tachometerCallback_wrapper);
+
+	shared_ptr<MyRCCar> myCar = make_shared<MyRCCar>(tach);
 	myCar->setUpdateCycle(50);
 	myCar->engineOn();
 

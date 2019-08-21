@@ -35,6 +35,9 @@ protected:
 	volatile int speed_;
 	volatile bool goingForward_;
 
+	//The below functions set the Min/Max of output values possible for the car.
+	//The values should be used to change real values on the hardware.
+	//We assume use of a standard RC servo and pwm driven motor drive board
 	void setServoMaxPw(float servoMaxPw);
 	void setServoMinPw(float servoMinPw);
 
