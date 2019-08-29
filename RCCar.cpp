@@ -22,8 +22,9 @@ int RCCAR_CPP_motorMap(int x, int in_min, int in_max, int out_min, int out_max)
 
 RC_Car::RC_Car():
 			servoPw_((servoMaxPW_ + servoMinPW_) / 2),
-			speed_(0),
+			targetSpeed_(0),
 			goingForward_(true),
+			gear_(0),
 			engineIsOn_(false),
 			updateCycle_(20),
 			updateThread_(0){
@@ -35,21 +36,25 @@ RC_Car::~RC_Car() {
 }
 
 void RC_Car::turn(int16_t val) {
+	std::lock_guard<std::mutex> lk(updateMu_);
 	servoPw_ = RCCAR_CPP_servoMap(val, INT16_MIN, INT16_MAX, servoMinPW_, servoMaxPW_);
 }
 
 void RC_Car::forward(int16_t val) {
+	std::lock_guard<std::mutex> lk(updateMu_);
 	goingForward_ = true;
-	speed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
+	targetSpeed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
 }
 
 void RC_Car::backward(int16_t val) {
+	std::lock_guard<std::mutex> lk(updateMu_);
 	goingForward_ = false;
-	speed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
+	targetSpeed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
 }
 
 void RC_Car::stop() {
-	speed_ = 0;
+	std::lock_guard<std::mutex> lk(updateMu_);
+	targetSpeed_ = 0;
 }
 
 void RC_Car::engineOn() {
@@ -60,7 +65,7 @@ void RC_Car::engineOn() {
 }
 
 void RC_Car::EngineOff() {
-	speed_ = 0;
+	targetSpeed_ = 0;
 	servoPw_ = (servoMaxPW_ + servoMinPW_) / 2;
 	engineIsOn_ = false;
 	if(updateThread_ && updateThread_->joinable()){
@@ -90,9 +95,23 @@ void RC_Car::setMinSpeed(int min_speed) {
 	minSpeed_ = min_speed;
 }
 
+void RC_Car::gearUp() {
+	std::lock_guard<std::mutex> lk(updateMu_);
+	if(gear_ < 6)
+		gear_++;
+}
+
+void RC_Car::gearDown() {
+	std::lock_guard<std::mutex> lk(updateMu_);
+	if(gear_ > -1)
+		gear_--;
+}
+
 void RC_Car::loop() {
 	while(engineIsOn_){
+		std::unique_lock<std::mutex> lk(updateMu_);
 		update();
+		lk.unlock();
 		usleep(updateCycle_ * 1000);
 	}
 }

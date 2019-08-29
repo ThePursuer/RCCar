@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <functional>
+#include <algorithm>
 
 #include <pca9685.h>
 #include <wiringPi.h>
@@ -49,6 +50,7 @@ int joystickfd = -1;
 
 //Tachometer
 #define TACHOMETER_PIN 35
+#define EST_MAX_RPM 1300
 std::function<void(void)> tachometerCallback;
 void tachometerCallback_wrapper(){
 	//We cannot pass the Tachomter function directly to wiring pi because of "ruuuules, shhhlerp <pushes up his glasses>"..,
@@ -56,6 +58,24 @@ void tachometerCallback_wrapper(){
 	//Screw the rules, I have money!
 	tachometerCallback();
 }
+
+//Gearing Maximums
+#define REVERSE_MAX (MAX_PWM * 0.3)
+#define FIRST_MAX (MAX_PWM * 0.2)
+#define SECOND_MAX (MAX_PWM * 0.3)
+#define THIRD_MAX (MAX_PWM * 0.45)
+#define FOURTH_MAX (MAX_PWM * 0.6)
+#define FIFTH_MAX (MAX_PWM * 0.8)
+#define SIXTH_MAX (MAX_PWM)
+
+//Gearing Minimums
+#define REVERSE_MIN 0
+#define FIRST_MIN 0
+#define SECOND_MIN (MAX_PWM * 0.1)
+#define THIRD_MIN (MAX_PWM * 0.2)
+#define FOURTH_MIN (MAX_PWM * 0.3)
+#define FIFTH_MIN (MAX_PWM * 0.4)
+#define SIXTH_MIN (MAX_PWM * 0.5)
 
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
@@ -66,29 +86,39 @@ int calcTicks(float impulseMs)
 	return (int)(MAX_PWM * impulseMs / cycleMs + 0.5f);
 }
 
+int intMap(int x, int in_min, int in_max, int out_min, int out_max)
+{
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 /*
  * Implement an RC Car
  */
 class MyRCCar: public RC_Car{
 public:
-	MyRCCar(shared_ptr<Tachometer> tach): tach_(tach),
-	realSpeed_(0){
+	MyRCCar(shared_ptr<Tachometer> tach):
+		tach_(tach),
+		realSpeed_(),
+		engineSpeed_(),
+		previousGear_(){
 		setServoMaxPw(SERVO_MAX_PW);
 		setServoMinPw(SERVO_MIN_PW);
 
 		setMaxSpeed(MAX_PWM);
 	}
 
-	void updateSpeed(int newSpeed){ realSpeed_ = newSpeed; }
+	void updateSpeed(int rpm){ realSpeed_ = intMap(rpm, 0, EST_MAX_RPM, 0, MAX_PWM); }
 
 protected:
+
 	void update(){
+		//Update speed from tachometer
+		updateSpeed(tach_->getRPM());
 
 		//Update steering
 		pwmWrite(SERVO_PIN, calcTicks(servoPw_));
 
-		//Update velocity
-		if(goingForward_) {
+		if(gear_ > -1) {
 			digitalWrite(L298N_HBRIDGE1_PIN, HIGH);
 			digitalWrite(L298N_HBRIDGE2_PIN, LOW);
 		}
@@ -96,13 +126,68 @@ protected:
 			digitalWrite(L298N_HBRIDGE1_PIN, LOW);
 			digitalWrite(L298N_HBRIDGE2_PIN, HIGH);
 		}
-		pwmWrite(L298N_EN_PIN, speed_);
 
+		if(targetSpeed_ > engineSpeed_ )
+			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.05;
+		else
+			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.08;
+
+		switch (gear_){
+		case -1:
+			engineSpeed_ = std::min<int>(engineSpeed_, REVERSE_MAX);
+			break;
+		case 0:
+			engineSpeed_ = 0;
+			break;
+		case 1:
+			engineSpeed_ = std::min<int>(engineSpeed_, FIRST_MAX);
+			break;
+		case 2:
+			if(engineSpeed_ < SECOND_MIN)
+				gear_--;
+			else
+				engineSpeed_ = std::min<int>(engineSpeed_, SECOND_MAX);
+			break;
+		case 3:
+			if(engineSpeed_ < THIRD_MIN)
+				gear_--;
+			else
+				engineSpeed_ = std::min<int>(engineSpeed_, THIRD_MAX);
+			break;
+		case 4:
+			if(engineSpeed_ < FOURTH_MIN)
+				gear_--;
+			else
+				engineSpeed_ = std::min<int>(engineSpeed_, FOURTH_MAX);
+			break;
+		case 5:
+			if(engineSpeed_ < FIFTH_MIN)
+				gear_--;
+			else
+				engineSpeed_ = std::min<int>(engineSpeed_, FIFTH_MAX);
+			break;
+		case 6:
+			if(engineSpeed_ < SIXTH_MIN)
+				gear_--;
+			else
+				engineSpeed_ = std::min<int>(engineSpeed_, SIXTH_MAX);
+			break;
+		default:
+			ERROR("GEAR UNRECOGNIZED");
+			break;
+		}
+
+		pwmWrite(L298N_EN_PIN, engineSpeed_);
+
+		previousGear_ = gear_;
 	}
 private:
 	shared_ptr<Tachometer> tach_;
 
+	int engineSpeed_;
 	int realSpeed_;
+
+	int previousGear_;
 };
 
 int main(int argc, char **argv) {

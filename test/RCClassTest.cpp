@@ -71,6 +71,24 @@ TEST_F(RCCarFixture, setUpdateCyclesTest){
 	EXPECT_NEAR(cycles_to_wait, test_car.getUpdateCalledTimes(), 1);
 }
 
+TEST_F(RCCarFixture, gearBoxTest){
+	ASSERT_EQ(0, test_car.getGear());
+
+	test_car.gearUp();
+	ASSERT_EQ(1, test_car.getGear());
+
+	for(int i = 0; i < 10; i++)
+		test_car.gearUp();
+	ASSERT_EQ(6, test_car.getGear());
+
+	test_car.gearDown();
+	ASSERT_EQ(5, test_car.getGear());
+
+	for(int i = 0; i < 10; i++)
+		test_car.gearDown();
+	ASSERT_EQ(-1, test_car.getGear());
+}
+
 }
 
 

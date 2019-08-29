@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <thread>
+#include <mutex>
 
 /*
  * Abstract class which manages an RCCar. Needs to define update() in order to work properly.
@@ -26,14 +27,17 @@ public:
 	void turn(int16_t val);//accepts all values of unsigned short
 	void forward(int16_t val);
 	void backward(int16_t val);
+	void gearUp();
+	void gearDown();
 	void stop();
 
 protected:
 	virtual void update() = 0;//Hardware specific, needs implementation
 
 	volatile float servoPw_;
-	volatile int speed_;
+	volatile int targetSpeed_;
 	volatile bool goingForward_;
+	volatile int gear_;
 
 	//The below functions set the Min/Max of output values possible for the car.
 	//The values should be used to change real values on the hardware.
@@ -56,6 +60,8 @@ private:
 
 	int maxSpeed_ = 255;
 	int minSpeed_ = 0;
+
+	std::mutex updateMu_;
 };
 
 #endif /* RCCAR_H_ */

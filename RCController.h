@@ -24,6 +24,11 @@ private:
 		int16_t leftTrigger = INT16_MIN;
 	} js_;
 
+	struct buttons{
+		bool leftBumper = false;
+		bool rightBumper = false;
+	} buttons_;
+
 	std::shared_ptr<RC_Car> rc_;
 };
 

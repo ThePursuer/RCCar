@@ -41,6 +41,16 @@ void RC_Controller::handleJoystickEvent(js_event event){
         	}
             break;
         case JS_EVENT_BUTTON://No use for buttons yet
+        	if(event.number == 4){
+        		if(event.value && !buttons_.leftBumper)
+        			rc_->gearDown();
+        		buttons_.leftBumper = event.value;
+        	}
+        	else if(event.number == 5){
+        		if(event.value && !buttons_.rightBumper)
+        			rc_->gearUp();
+        		buttons_.rightBumper = event.value;
+        	}
             break;
         default:
             break;
