@@ -6,6 +6,7 @@
 #include <iostream>
 #include <functional>
 #include <algorithm>
+#include <memory>
 
 #include <pca9685.h>
 #include <wiringPi.h>
@@ -18,12 +19,9 @@
 #include "RCCar.h"
 #include "RCController.h"
 #include "Tachometer.h"
-#include "EngineSoundThread.h"
+#include "EngineAudio.h"
 
 using namespace std;
-
-//Main related
-bool run = true;
 
 //Utility
 #define ERROR(msg) do {cout << "ERROR: " << msg << endl;} while(0)
@@ -79,9 +77,9 @@ void tachometerCallback_wrapper(){
 #define SIXTH_MIN (MAX_PWM * 0.5)
 
 //Sounds related
-#define BUZZER_PIN 36
-#define MAX_SIMULATED_RPM 7500
+EngineAudio audio;
 #define SIMULATED_IDLE_RPM 800
+#define MAX_SIMULATED_RPM 7500
 
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
@@ -97,6 +95,26 @@ int intMap(int x, int in_min, int in_max, int out_min, int out_max)
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+int joystickFileExists(const char* filename){
+    struct stat buffer;
+    int exist = stat(filename,&buffer);
+    if(exist == 0)
+        return 1;
+    else // -1
+        return 0;
+}
+
+void openJoystickFile(){
+	joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
+	while(joystickfd < 0)
+	{
+		ERROR("Could not open joystick file... Retrying");
+		joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
+
+		sleep(2);
+	}
+}
+
 /*
  * Implement an RC Car
  */
@@ -107,23 +125,19 @@ public:
 		realSpeed_(),
 		engineSpeed_(),
 		engineSoundSpeed_(),
-		previousGear_(),
-		engineSounds(BUZZER_PIN, MAX_SIMULATED_RPM)
+		previousGear_()
 		{
 			setServoMaxPw(SERVO_MAX_PW);
 			setServoMinPw(SERVO_MIN_PW);
 
 			setMaxSpeed(MAX_PWM);
 
-			std::thread t(&EngineSoundThread::run, &engineSounds);
-			t.detach();
+			audio.start();
 		}
 
 	void updateSpeed(int rpm){ realSpeed_ = intMap(rpm, 0, EST_MAX_RPM, 0, MAX_PWM); }
 
 protected:
-	EngineSoundThread engineSounds;
-
 	void update(){
 		//Update speed from tachometer
 		updateSpeed(tach_->getRPM());
@@ -143,7 +157,7 @@ protected:
 		if(targetSpeed_ > engineSpeed_ )
 			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.05;
 		else
-			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.08;
+			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.05;
 
 		switch (gear_){
 		case -1:
@@ -210,8 +224,10 @@ protected:
 
 		previousGear_ = gear_;
 
+		cout << "Sound: " << engineSoundSpeed_ << endl;
+		cout << "Speed: " <<  engineSpeed_ << endl;
 		engineSoundSpeed_ = std::max(engineSoundSpeed_, SIMULATED_IDLE_RPM);
-		engineSounds.updateSpeed(engineSoundSpeed_);
+		audio.updateRPM(engineSoundSpeed_);
 	}
 private:
 	shared_ptr<Tachometer> tach_;
@@ -221,6 +237,8 @@ private:
 	int realSpeed_;
 
 	int previousGear_;
+
+	EngineAudio audio;
 };
 
 int main(int argc, char **argv) {
@@ -234,7 +252,6 @@ int main(int argc, char **argv) {
 
 	pinMode(L298N_HBRIDGE1_PIN, OUTPUT);
 	pinMode(L298N_HBRIDGE2_PIN, OUTPUT);
-	pinMode(BUZZER_PIN, OUTPUT);
 
 	// Setup with pinbase 300 and i2c location 0x40
 	pca9685FD = pca9685Setup(PIN_BASE, 0x40, HERTZ);
@@ -250,15 +267,7 @@ int main(int argc, char **argv) {
 	/**************************
 	 * Open the Joystick file *
 	 **************************/
-
-	joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
-	while(joystickfd < 0)
-	{
-		ERROR("Could not open joystick file... Retrying");
-		joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
-
-		sleep(2);
-	}
+	openJoystickFile();
 
 	/************************************
 	 * Set up the RC_Car and Controller *
@@ -282,15 +291,20 @@ int main(int argc, char **argv) {
 	 ***********************/
 
 	struct js_event jsEvent;
-	while(run){
-		while(read(joystickfd, &jsEvent, sizeof(jsEvent)))
-			controller.handleJoystickEvent(jsEvent);
+	while(read(joystickfd, &jsEvent, sizeof(jsEvent))){
+			if(!joystickFileExists(JOYSTICK_FILENAME)){//If we loose the connection to the controller STOP THE CAR!!!
+				myCar->stop();
+				openJoystickFile();
+			}
+			else
+				controller.handleJoystickEvent(jsEvent);
 	}
 
 	/***********
 	 * Cleanup *
 	 ***********/
 
+	myCar->stop();
 	close(joystickfd);
 	return 0;
 }
