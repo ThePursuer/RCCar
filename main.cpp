@@ -16,6 +16,7 @@
 #include <linux/joystick.h>
 #include <fcntl.h>
 
+#include "Settings.h"
 #include "RCCar.h"
 #include "RCController.h"
 #include "Tachometer.h"
@@ -23,33 +24,13 @@
 
 using namespace std;
 
-//Utility
-#define ERROR(msg) do {cout << "ERROR: " << msg << endl;} while(0)
-#define INFO(msg) do {cout << "INFO: " << msg << endl;} while(0)
-
 //PCA9685 related
-#define PIN_BASE 300
-#define SERVO_PIN PIN_BASE
-#define MAX_PWM 4096
-#define HERTZ 330
-
-#define SERVO_MAX_PW 1.7
-#define SERVO_MIN_PW 0.5
-
 int pca9685FD;
 
 //Joystick related
-#define JOYSTICK_FILENAME "/dev/input/js0"
 int joystickfd = -1;
 
-//Motor related
-#define L298N_HBRIDGE1_PIN 38 //GPIO20
-#define L298N_HBRIDGE2_PIN 40 //GPIO21
-#define L298N_EN_PIN (PIN_BASE + 1)
-
 //Tachometer
-#define TACHOMETER_PIN 35
-#define EST_MAX_RPM 1300
 std::function<void(void)> tachometerCallback;
 void tachometerCallback_wrapper(){
 	//We cannot pass the Tachomter function directly to wiring pi because of "ruuuules, shhhlerp <pushes up his glasses>"..,
@@ -58,28 +39,8 @@ void tachometerCallback_wrapper(){
 	tachometerCallback();
 }
 
-//Gearing Maximums
-#define REVERSE_MAX (MAX_PWM * 0.3)
-#define FIRST_MAX (MAX_PWM * 0.2)
-#define SECOND_MAX (MAX_PWM * 0.3)
-#define THIRD_MAX (MAX_PWM * 0.45)
-#define FOURTH_MAX (MAX_PWM * 0.6)
-#define FIFTH_MAX (MAX_PWM * 0.8)
-#define SIXTH_MAX (MAX_PWM)
-
-//Gearing Minimums
-#define REVERSE_MIN 0
-#define FIRST_MIN 0
-#define SECOND_MIN (MAX_PWM * 0.1)
-#define THIRD_MIN (MAX_PWM * 0.2)
-#define FOURTH_MIN (MAX_PWM * 0.3)
-#define FIFTH_MIN (MAX_PWM * 0.4)
-#define SIXTH_MIN (MAX_PWM * 0.5)
-
 //Sounds related
 EngineAudio audio;
-#define SIMULATED_IDLE_RPM 800
-#define MAX_SIMULATED_RPM 7500
 
 /*
  * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
