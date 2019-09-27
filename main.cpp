@@ -21,6 +21,7 @@
 #include "RCController.h"
 #include "Tachometer.h"
 #include "EngineAudio.h"
+#include "RC_Utilities.h"
 
 using namespace std;
 
@@ -30,7 +31,7 @@ int pca9685FD;
 //Joystick related
 int joystickfd = -1;
 
-//Tachometer
+//Tachometer related
 std::function<void(void)> tachometerCallback;
 void tachometerCallback_wrapper(){
 	//We cannot pass the Tachomter function directly to wiring pi because of "ruuuules, shhhlerp <pushes up his glasses>"..,
@@ -42,31 +43,15 @@ void tachometerCallback_wrapper(){
 //Sounds related
 EngineAudio audio;
 
-/*
- * Utility function to calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
- */
-int calcTicks(float impulseMs)
-{
+//Utility functions
+int calcTicks(float impulseMs){
+	//calculate the ticks needed to produce a pulse of impulseMS milliseconds on the pca9685
 	float cycleMs = 1000.0f / HERTZ;
 	return (int)(MAX_PWM * impulseMs / cycleMs + 0.5f);
 }
 
-template<class T1, class T2>
-T2 number_map(T1 x, T1 in_min, T1 in_max, T2 out_min, T2 out_max)
-{
-	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-template <class T>
-T clamp(T val, T minval, T maxval){
-	if(val < minval)
-		return minval;
-	else if( val > maxval)
-		return maxval;
-	return val;
-}
-
 int joystickFileExists(const char* filename){
+	//Check if the file exists
     struct stat buffer;
     int exist = stat(filename,&buffer);
     if(exist == 0)
@@ -76,6 +61,7 @@ int joystickFileExists(const char* filename){
 }
 
 void openJoystickFile(){
+	//open the joystick file
 	joystickfd = open(JOYSTICK_FILENAME, O_RDONLY);
 	while(joystickfd < 0)
 	{
@@ -86,9 +72,7 @@ void openJoystickFile(){
 	}
 }
 
-/*
- * Implement an RC Car
- */
+//Implement an RC Car
 class MyRCCar: public RC_Car{
 public:
 	MyRCCar(shared_ptr<Tachometer> tach):
@@ -135,21 +119,21 @@ protected:
 		engineSpeed_ = engineSpeed_ + (load_ * RPM_DELTA_CLAMP_VALUE);
 		engineSpeed_ = clamp<int>(engineSpeed_, 0, MAX_PWM);
 
+		//Get the speed we should write out to the motor drive board
 		if(gearBox.getGear() != 0)
 			speedToWrite_ = number_map<int, int>(engineSpeed_, 0, MAX_PWM, gearBox.getGearMin(), gearBox.getGearMax());
 		else
 			speedToWrite_ = 0;
 
-		realSpeed_ = speedToWrite_;
+		realSpeed_ = speedToWrite_;//todo: remove this when we have the tach connected
+
+		//Write the speed out to the mdb
 		if(gearBox.getGear() == 0)
 			pwmWrite(L298N_EN_PIN, 0);
 		else
 			pwmWrite(L298N_EN_PIN, speedToWrite_);
 
-		cout << "Engine speed: " << engineSpeed_ << endl;
-		cout << "Car Speed: " <<  speedToWrite_ << endl;
-		cout << "Gear: " << gearBox.getGear() << endl;
-
+		//Update the audio
 		audio.updateLoad(load_);
 		audio.updateRPM(max(engineSpeed_, IDLE_RPM));
 		previousGear_ = gearBox.getGear();
