@@ -24,6 +24,11 @@ protected:
 	std::shared_ptr<TestRCCar> test_car;
 	std::shared_ptr<RC_Controller> test_controller;
 	struct js_event test_js_event;
+
+	const int controller_test_max_speed = MAX_PWM;
+
+	const float controller_test_min_servopw = SERVO_MIN_PW;
+	const float controller_test_max_servopw = SERVO_MAX_PW;
 };
 
 #endif /* TEST_RCCONTROLLERFIXTURE_H_ */

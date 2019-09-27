@@ -51,9 +51,19 @@ int calcTicks(float impulseMs)
 	return (int)(MAX_PWM * impulseMs / cycleMs + 0.5f);
 }
 
-int intMap(int x, int in_min, int in_max, int out_min, int out_max)
+template<class T1, class T2>
+T2 number_map(T1 x, T1 in_min, T1 in_max, T2 out_min, T2 out_max)
 {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+template <class T>
+T clamp(T val, T minval, T maxval){
+	if(val < minval)
+		return minval;
+	else if( val > maxval)
+		return maxval;
+	return val;
 }
 
 int joystickFileExists(const char* filename){
@@ -83,30 +93,27 @@ class MyRCCar: public RC_Car{
 public:
 	MyRCCar(shared_ptr<Tachometer> tach):
 		tach_(tach),
+		load_(),
 		realSpeed_(),
 		engineSpeed_(),
-		engineSoundSpeed_(),
+		speedToWrite_(),
 		previousGear_()
 		{
-			setServoMaxPw(SERVO_MAX_PW);
-			setServoMinPw(SERVO_MIN_PW);
-
-			setMaxSpeed(MAX_PWM);
-
 			audio.start();
+			audio.setVolume(1);
 		}
 
-	void updateSpeed(int rpm){ realSpeed_ = intMap(rpm, 0, EST_MAX_RPM, 0, MAX_PWM); }
+	void updateRealSpeed(int rpm){ realSpeed_ = number_map<int, int>(rpm, 0, MAX_REAL_SPEED, 0, MAX_PWM); }
 
 protected:
 	void update(){
 		//Update speed from tachometer
-		updateSpeed(tach_->getRPM());
+		//updateRealSpeed(tach_->getRPM());
 
 		//Update steering
 		pwmWrite(SERVO_PIN, calcTicks(servoPw_));
 
-		if(gear_ > -1) {
+		if(gearBox.getGear() > -1) {
 			digitalWrite(L298N_HBRIDGE1_PIN, HIGH);
 			digitalWrite(L298N_HBRIDGE2_PIN, LOW);
 		}
@@ -115,87 +122,45 @@ protected:
 			digitalWrite(L298N_HBRIDGE2_PIN, HIGH);
 		}
 
-		if(targetSpeed_ > engineSpeed_ )
-			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.05;
+		//Downshift if the rpms are too low
+		if(engineSpeed_ < IDLE_RPM && gearBox.getGear() > 0)
+			gearBox.gearDown();
+
+		//Readjust RPMS if we changed gear
+		if(previousGear_ != gearBox.getGear() && gearBox.getGear() != 0)
+			engineSpeed_ = number_map<int, int>(realSpeed_, gearBox.getGearMin(), gearBox.getGearMax(), IDLE_RPM, MAX_PWM);
+
+		//Update Engine speed and load
+		load_ = number_map<int, float>(throttle_, 0, MAX_PWM, -1.0, 1.0);
+		engineSpeed_ = engineSpeed_ + (load_ * RPM_DELTA_CLAMP_VALUE);
+		engineSpeed_ = clamp<int>(engineSpeed_, 0, MAX_PWM);
+
+		if(gearBox.getGear() != 0)
+			speedToWrite_ = number_map<int, int>(engineSpeed_, 0, MAX_PWM, gearBox.getGearMin(), gearBox.getGearMax());
 		else
-			engineSpeed_ += (targetSpeed_ - engineSpeed_) * 0.05;
+			speedToWrite_ = 0;
 
-		switch (gear_){
-		case -1:
-			engineSpeed_ = std::min<int>(engineSpeed_, REVERSE_MAX);
-			engineSoundSpeed_ = intMap(engineSpeed_, REVERSE_MIN, REVERSE_MAX, 0, MAX_SIMULATED_RPM);
-			break;
-		case 0:
-			engineSpeed_ = std::min<int>(engineSpeed_, FIRST_MAX);
-			engineSoundSpeed_ = intMap(engineSpeed_, 0, FIRST_MAX, 0, MAX_SIMULATED_RPM);
-			break;
-		case 1:
-			engineSpeed_ = std::min<int>(engineSpeed_, FIRST_MAX);
-			engineSoundSpeed_ = intMap(engineSpeed_, FIRST_MIN, FIRST_MAX, 0, MAX_SIMULATED_RPM);
-			break;
-		case 2:
-			if(engineSpeed_ < SECOND_MIN)
-				gear_--;
-			else{
-				engineSpeed_ = std::min<int>(engineSpeed_, SECOND_MAX);
-				engineSoundSpeed_ = intMap(engineSpeed_, SECOND_MIN, SECOND_MAX, 0, MAX_SIMULATED_RPM);
-			}
-			break;
-		case 3:
-			if(engineSpeed_ < THIRD_MIN)
-				gear_--;
-			else{
-				engineSpeed_ = std::min<int>(engineSpeed_, THIRD_MAX);
-				engineSoundSpeed_ = intMap(engineSpeed_, THIRD_MIN, THIRD_MAX, 0, MAX_SIMULATED_RPM);
-			}
-			break;
-		case 4:
-			if(engineSpeed_ < FOURTH_MIN)
-				gear_--;
-			else{
-				engineSpeed_ = std::min<int>(engineSpeed_, FOURTH_MAX);
-				engineSoundSpeed_ = intMap(engineSpeed_, FOURTH_MIN, FOURTH_MAX, 0, MAX_SIMULATED_RPM);
-			}
-			break;
-		case 5:
-			if(engineSpeed_ < FIFTH_MIN)
-				gear_--;
-			else{
-				engineSpeed_ = std::min<int>(engineSpeed_, FIFTH_MAX);
-				engineSoundSpeed_ = intMap(engineSpeed_, FIFTH_MIN, FIFTH_MAX, 0, MAX_SIMULATED_RPM);
-			}
-			break;
-		case 6:
-			if(engineSpeed_ < SIXTH_MIN)
-				gear_--;
-			else{
-				engineSpeed_ = std::min<int>(engineSpeed_, SIXTH_MAX);
-				engineSoundSpeed_ = intMap(engineSpeed_, SIXTH_MIN, SIXTH_MAX, 0, MAX_SIMULATED_RPM);
-			}
-			break;
-		default:
-			ERROR("GEAR UNRECOGNIZED");
-			break;
-		}
-
-		if(gear_ == 0)
+		realSpeed_ = speedToWrite_;
+		if(gearBox.getGear() == 0)
 			pwmWrite(L298N_EN_PIN, 0);
 		else
-			pwmWrite(L298N_EN_PIN, engineSpeed_);
+			pwmWrite(L298N_EN_PIN, speedToWrite_);
 
-		previousGear_ = gear_;
+		cout << "Engine speed: " << engineSpeed_ << endl;
+		cout << "Car Speed: " <<  speedToWrite_ << endl;
+		cout << "Gear: " << gearBox.getGear() << endl;
 
-		cout << "Sound: " << engineSoundSpeed_ << endl;
-		cout << "Speed: " <<  engineSpeed_ << endl;
-		engineSoundSpeed_ = std::max(engineSoundSpeed_, SIMULATED_IDLE_RPM);
-		audio.updateRPM(engineSoundSpeed_);
+		audio.updateLoad(load_);
+		audio.updateRPM(max(engineSpeed_, IDLE_RPM));
+		previousGear_ = gearBox.getGear();
 	}
 private:
 	shared_ptr<Tachometer> tach_;
 
+	int load_;
 	int engineSpeed_;
-	int engineSoundSpeed_;
 	int realSpeed_;
+	int speedToWrite_;
 
 	int previousGear_;
 
@@ -269,5 +234,3 @@ int main(int argc, char **argv) {
 	close(joystickfd);
 	return 0;
 }
-
-

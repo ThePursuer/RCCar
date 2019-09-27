@@ -12,15 +12,10 @@
 class TestRCCar : public RC_Car{
 public:
 	float getServoPW() const {return servoPw_;}
-	uint8_t getSpeed() const {return targetSpeed_;}
+	int getSpeed() const {return throttle_;}
 	bool getGoingForward() const {return goingForward_;}
 	int getUpdateCalledTimes() const {return updateCalled;}
-	int getGear() const { return gear_; }
-
-	void setPWForTesting(float min, float max){
-		setServoMaxPw(max);
-		setServoMinPw(min);
-	}
+	int getGear() const { return gearBox.getGear(); }
 
 	void update() override {++updateCalled;}//todo mock this function when I can actually read the gmock documentation
 private:

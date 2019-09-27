@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 
 project (RCCar)
 
-set(ALL_SOURCES RCCar.cpp RCController.cpp Tachometer.cpp EngineAudio.cpp)
+set(ALL_SOURCES RCCar.cpp RCController.cpp Tachometer.cpp EngineAudio.cpp GearBox.cpp)
 set(LINK_LIBS -pthread -lfmodstudio)
 
 #Normal Build

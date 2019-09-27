@@ -24,12 +24,12 @@
 #define SERVO_MIN_PW 0.5
 
 //Gearing Maximums
-#define REVERSE_MAX (MAX_PWM * 0.3)
-#define FIRST_MAX (MAX_PWM * 0.2)
-#define SECOND_MAX (MAX_PWM * 0.3)
-#define THIRD_MAX (MAX_PWM * 0.45)
-#define FOURTH_MAX (MAX_PWM * 0.6)
-#define FIFTH_MAX (MAX_PWM * 0.8)
+#define REVERSE_MAX (MAX_PWM * 0.4)
+#define FIRST_MAX (MAX_PWM * 0.25)
+#define SECOND_MAX (MAX_PWM * 0.6)
+#define THIRD_MAX (MAX_PWM * 0.7)
+#define FOURTH_MAX (MAX_PWM * 0.8)
+#define FIFTH_MAX (MAX_PWM * 0.9)
 #define SIXTH_MAX (MAX_PWM)
 
 //Gearing Minimums
@@ -48,13 +48,14 @@
 #define L298N_HBRIDGE1_PIN 38 //GPIO20
 #define L298N_HBRIDGE2_PIN 40 //GPIO21
 #define L298N_EN_PIN (PIN_BASE + 1)
+#define RPM_DELTA_CLAMP_VALUE (MAX_PWM * 0.02)
+#define MAX_REAL_SPEED MAX_PWM //We do not have data yet so we will use this value
 
 //Tachometer
 #define TACHOMETER_PIN 35
-#define EST_MAX_RPM 1300
 
 //Sounds related
-#define SIMULATED_IDLE_RPM 800
+#define IDLE_RPM 800
 #define MAX_SIMULATED_RPM 7500
 
 #endif /* SETTINGS_H_ */
