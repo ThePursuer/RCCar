@@ -6,7 +6,8 @@
  */
 
 #include "GearBox.h"
-#include "Settings.h"
+
+#include "RC_Settings.h"
 
 GearBox::GearBox(){
 	gear_ = 0;

@@ -9,11 +9,10 @@
 #define RCCAR_H_
 
 #include "GearBox.h"
-#include "Settings.h"
-
 #include <stdint.h>
 #include <thread>
 #include <mutex>
+#include "RC_Settings.h"
 
 /*
  * Abstract class which manages an RCCar. Needs to define update() in order to work properly.

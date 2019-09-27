@@ -5,8 +5,8 @@
  *      Author: thepursuer
  */
 
-#ifndef SETTINGS_H_
-#define SETTINGS_H_
+#ifndef RC_SETTINGS_H_
+#define RC_SETTINGS_H_
 
 /*This file is to be replaced by a settings class in the future*/
 
@@ -58,4 +58,4 @@
 #define IDLE_RPM 800
 #define MAX_SIMULATED_RPM 7500
 
-#endif /* SETTINGS_H_ */
+#endif /* RC_SETTINGS_H_ */

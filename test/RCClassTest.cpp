@@ -5,11 +5,10 @@
  *      Author: thepursuer
  */
 #include "RCCarFixture.h"
-#include "Settings.h"
-
 #include <unistd.h>
 
 #include <gtest/gtest.h>
+#include "../RC_Settings.h"
 
 namespace{
 

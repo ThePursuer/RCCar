@@ -16,11 +16,11 @@
 #include <linux/joystick.h>
 #include <fcntl.h>
 
-#include "Settings.h"
 #include "RCCar.h"
 #include "RCController.h"
 #include "Tachometer.h"
 #include "EngineAudio.h"
+#include "RC_Settings.h"
 #include "RC_Utilities.h"
 
 using namespace std;

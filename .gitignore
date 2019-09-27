@@ -8,3 +8,4 @@ Makefile
 RCCar
 gtest_RCCar
 install_manifest.txt
+.settings/
