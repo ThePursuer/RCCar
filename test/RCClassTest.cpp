@@ -5,6 +5,7 @@
  *      Author: thepursuer
  */
 #include "RCCarFixture.h"
+#include "Settings.h"
 
 #include <unistd.h>
 
@@ -14,36 +15,26 @@ namespace{
 
 TEST_F(RCCarFixture, turningTest){
 	test_car.turn(0);
-	EXPECT_NEAR(1.5, test_car.getServoPW(), 0.1);
+	EXPECT_NEAR(((rc_test_min_servopw + rc_test_max_servopw) / 2), test_car.getServoPW(), 0.1);
 
 	test_car.turn(INT16_MAX);
-	EXPECT_NEAR(2.0, test_car.getServoPW(), 0.1);
+	EXPECT_NEAR(rc_test_max_servopw, test_car.getServoPW(), 0.1);
 
 	test_car.turn(INT16_MIN);
-	EXPECT_NEAR(1.0, test_car.getServoPW(), 0.1);
-}
-
-TEST_F(RCCarFixture, setMinMaxServoPulseWidth){
-	test_car.setPWForTesting(0.5, 2.5);
-
-	test_car.turn(INT16_MAX);
-	EXPECT_NEAR(2.5, test_car.getServoPW(), 0.1);
-
-	test_car.turn(INT16_MIN);
-	EXPECT_NEAR(0.5, test_car.getServoPW(), 0.1);
+	EXPECT_NEAR(rc_test_min_servopw, test_car.getServoPW(), 0.1);
 }
 
 TEST_F(RCCarFixture, accelerateTest){
 	test_car.forward(INT16_MAX);
-	ASSERT_EQ(UINT8_MAX, test_car.getSpeed());
+	ASSERT_EQ(rc_test_max_speed, test_car.getSpeed());
 	ASSERT_TRUE(test_car.getGoingForward());
 
 	test_car.backward(INT16_MAX);
-	ASSERT_EQ(UINT8_MAX, test_car.getSpeed());
+	ASSERT_EQ(rc_test_max_speed, test_car.getSpeed());
 	ASSERT_FALSE(test_car.getGoingForward());
 
 	test_car.forward(0);
-	ASSERT_EQ(UINT8_MAX / 2, test_car.getSpeed());
+	ASSERT_EQ(rc_test_max_speed / 2, test_car.getSpeed());
 	ASSERT_TRUE(test_car.getGoingForward());
 
 

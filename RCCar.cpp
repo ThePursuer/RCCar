@@ -22,9 +22,8 @@ int RCCAR_CPP_motorMap(int x, int in_min, int in_max, int out_min, int out_max)
 
 RC_Car::RC_Car():
 			servoPw_((servoMaxPW_ + servoMinPW_) / 2),
-			targetSpeed_(0),
+			throttle_(0),
 			goingForward_(true),
-			gear_(0),
 			engineIsOn_(false),
 			updateCycle_(20),
 			updateThread_(0){
@@ -43,18 +42,18 @@ void RC_Car::turn(int16_t val) {
 void RC_Car::forward(int16_t val) {
 	std::lock_guard<std::mutex> lk(updateMu_);
 	goingForward_ = true;
-	targetSpeed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
+	throttle_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
 }
 
 void RC_Car::backward(int16_t val) {
 	std::lock_guard<std::mutex> lk(updateMu_);
 	goingForward_ = false;
-	targetSpeed_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
+	throttle_ = RCCAR_CPP_motorMap(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
 }
 
 void RC_Car::stop() {
 	std::lock_guard<std::mutex> lk(updateMu_);
-	targetSpeed_ = 0;
+	throttle_ = 0;
 }
 
 void RC_Car::engineOn() {
@@ -65,7 +64,7 @@ void RC_Car::engineOn() {
 }
 
 void RC_Car::EngineOff() {
-	targetSpeed_ = 0;
+	throttle_ = 0;
 	servoPw_ = (servoMaxPW_ + servoMinPW_) / 2;
 	engineIsOn_ = false;
 	if(updateThread_ && updateThread_->joinable()){
@@ -87,26 +86,6 @@ bool RC_Car::setUpdateCycle(uint16_t milliseconds) {
 	return true;
 }
 
-void RC_Car::setMaxSpeed(int max_speed) {
-	maxSpeed_ = max_speed;
-}
-
-void RC_Car::setMinSpeed(int min_speed) {
-	minSpeed_ = min_speed;
-}
-
-void RC_Car::gearUp() {
-	std::lock_guard<std::mutex> lk(updateMu_);
-	if(gear_ < 6)
-		gear_++;
-}
-
-void RC_Car::gearDown() {
-	std::lock_guard<std::mutex> lk(updateMu_);
-	if(gear_ > -1)
-		gear_--;
-}
-
 void RC_Car::loop() {
 	while(engineIsOn_){
 		std::unique_lock<std::mutex> lk(updateMu_);
@@ -116,13 +95,10 @@ void RC_Car::loop() {
 	}
 }
 
-void RC_Car::setServoMinPw(float servoMinPw) {
-	servoMinPW_ = servoMinPw;
+void RC_Car::gearUp() {
+	gearBox.gearUp();
 }
 
-void RC_Car::setServoMaxPw(float servoMaxPw) {
-	servoMaxPW_ = servoMaxPw;
+void RC_Car::gearDown() {
+	gearBox.gearDown();
 }
-
-
-

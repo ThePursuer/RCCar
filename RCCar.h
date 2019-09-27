@@ -8,6 +8,9 @@
 #ifndef RCCAR_H_
 #define RCCAR_H_
 
+#include "GearBox.h"
+#include "Settings.h"
+
 #include <stdint.h>
 #include <thread>
 #include <mutex>
@@ -35,19 +38,10 @@ protected:
 	virtual void update() = 0;//Hardware specific, needs implementation
 
 	volatile float servoPw_;
-	volatile int targetSpeed_;
+	volatile int throttle_;
 	volatile bool goingForward_;
-	volatile int gear_;
 
-	//The below functions set the Min/Max of output values possible for the car.
-	//The values should be used to change real values on the hardware.
-	//We assume use of a standard RC servo and pwm driven motor drive board
-	void setServoMaxPw(float servoMaxPw);
-	void setServoMinPw(float servoMinPw);
-
-	void setMaxSpeed(int speed);
-	void setMinSpeed(int speed);
-
+	GearBox gearBox;
 private:
 	void loop();
 
@@ -55,10 +49,10 @@ private:
 	uint16_t updateCycle_;
 	std::thread *updateThread_;
 
-	float servoMinPW_ = 1.0;
-	float servoMaxPW_ = 2.0;
+	float servoMinPW_ = SERVO_MIN_PW;
+	float servoMaxPW_ = SERVO_MAX_PW;
 
-	int maxSpeed_ = 255;
+	int maxSpeed_ = MAX_PWM;
 	int minSpeed_ = 0;
 
 	std::mutex updateMu_;
