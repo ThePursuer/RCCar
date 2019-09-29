@@ -14,11 +14,11 @@
 
 RC_Car::RC_Car():
 			servoPw_((servoMaxPW_ + servoMinPW_) / 2),
-			throttle_(0),
-			goingForward_(true),
-			engineIsOn_(false),
+			throttle_(),
+			brakeForce_(),
+			engineIsOn_(),
 			updateCycle_(20),
-			updateThread_(0){
+			updateThread_(){
 }
 
 RC_Car::~RC_Car() {
@@ -31,16 +31,14 @@ void RC_Car::turn(int16_t val) {
 	servoPw_ = number_map<int16_t, float>(val, INT16_MIN, INT16_MAX, servoMinPW_, servoMaxPW_);
 }
 
-void RC_Car::forward(int16_t val) {
+void RC_Car::throttle(int16_t val) {
 	std::lock_guard<std::mutex> lk(updateMu_);
-	goingForward_ = true;
 	throttle_ = number_map<int16_t, int>(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
 }
 
-void RC_Car::backward(int16_t val) {
+void RC_Car::brake(int16_t val) {
 	std::lock_guard<std::mutex> lk(updateMu_);
-	goingForward_ = false;
-	throttle_ = number_map<int16_t, int>(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
+	brakeForce_ = number_map<int16_t, float>(val, INT16_MIN, INT16_MAX, 0.0, 1.0);
 }
 
 void RC_Car::stop() {

@@ -57,31 +57,29 @@ TEST_F(RCControllerFixture, goForwardTest){
 
 	test_controller->handleJoystickEvent(test_js_event);
 	ASSERT_EQ(0, test_car->getSpeed());
-	ASSERT_TRUE(test_car->getGoingForward());
 }
 
-TEST_F(RCControllerFixture, goBackwardTest){
+TEST_F(RCControllerFixture, brakeTest){
 	test_js_event.type = JS_EVENT_AXIS;
 	test_js_event.number = 2;
 	test_js_event.value = INT16_MAX;//The xbox controller uses signed shorts for triggers so we will use them in this test as we would in the actuall code
 
 	test_controller->handleJoystickEvent(test_js_event);
-	ASSERT_EQ(controller_test_max_speed, test_car->getSpeed());
+	ASSERT_FLOAT_EQ(1.0, test_car->getBrakeForce());
 
 	test_js_event.type = JS_EVENT_AXIS;
 	test_js_event.number = 2;
 	test_js_event.value = 0;
 
 	test_controller->handleJoystickEvent(test_js_event);
-	ASSERT_NEAR((controller_test_max_speed / 2), test_car->getSpeed(), 1);
+	ASSERT_NEAR(0.5, test_car->getBrakeForce(), 0.01);
 
 	test_js_event.type = JS_EVENT_AXIS;
 	test_js_event.number = 2;
 	test_js_event.value = INT16_MIN;
 
 	test_controller->handleJoystickEvent(test_js_event);
-	ASSERT_EQ(0, test_car->getSpeed());
-	ASSERT_FALSE(test_car->getGoingForward());
+	ASSERT_FLOAT_EQ(0, test_car->getBrakeForce());
 }
 
 }//End namespace

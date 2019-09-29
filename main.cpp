@@ -120,8 +120,10 @@ protected:
 		engineSpeed_ = clamp<int>(engineSpeed_, 0, MAX_PWM);
 
 		//Get the speed we should write out to the motor drive board
-		if(gearBox.getGear() != 0)
+		if(gearBox.getGear() != 0){
 			speedToWrite_ = number_map<int, int>(engineSpeed_, 0, MAX_PWM, gearBox.getGearMin(), gearBox.getGearMax());
+			speedToWrite_ = speedToWrite_ - (FULL_BRAKE_DELTA * brakeForce_);//Apply brake force here rather than to the engine
+		}
 		else
 			speedToWrite_ = 0;
 

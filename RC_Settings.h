@@ -48,7 +48,8 @@
 #define L298N_HBRIDGE1_PIN 38 //GPIO20
 #define L298N_HBRIDGE2_PIN 40 //GPIO21
 #define L298N_EN_PIN (PIN_BASE + 1)
-#define RPM_DELTA_CLAMP_VALUE (MAX_PWM * 0.02)
+#define RPM_DELTA_CLAMP_VALUE (MAX_PWM * 0.015)
+#define FULL_BRAKE_DELTA (MAX_PWM * 0.01)
 #define MAX_REAL_SPEED MAX_PWM //We do not have data yet so we will use this value
 
 //Tachometer

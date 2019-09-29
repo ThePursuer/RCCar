@@ -19,22 +19,15 @@ void RC_Controller::handleJoystickEvent(js_event event){
         	switch (event.number){
         	case 0://Left Joy X-axis
         		rc_->turn(event.value);
+        		//js_.joy_left_x = event.value;
         		break;
         	case 5://Right Trigger
-        		if(js_.leftTrigger > INT16_MIN + 1)//Make sure we arnt holding both triggers (Plus one because the triggers never actuall hit INT16_MIN)
-        			rc_->forward(INT16_MIN);
-        		else
-        			rc_->forward(event.value);
-
-        		js_.rightTrigger = event.value;
+        		rc_->throttle(event.value);
+        		//js_.rightTrigger = event.value;
         		break;
         	case 2://Left Trigger
-        		if(js_.rightTrigger > INT16_MIN + 1)//Make sure we arnt holding both triggers (Plus one because the triggers never actuall hit INT16_MIN)
-        			rc_->forward(INT16_MIN);
-        		else
-        			rc_->backward(event.value);
-
-        		js_.leftTrigger = event.value;
+        		rc_->brake(event.value);
+        		//js_.leftTrigger = event.value;
         		break;
         	default:
         		break;
@@ -42,14 +35,14 @@ void RC_Controller::handleJoystickEvent(js_event event){
             break;
         case JS_EVENT_BUTTON://No use for buttons yet
         	if(event.number == 4){
-        		if(event.value && !buttons_.leftBumper)
+        		if(event.value && !js_.leftBumper)
         			rc_->gearDown();
-        		buttons_.leftBumper = event.value;
+        		js_.leftBumper = event.value;
         	}
         	else if(event.number == 5){
-        		if(event.value && !buttons_.rightBumper)
+        		if(event.value && !js_.rightBumper)
         			rc_->gearUp();
-        		buttons_.rightBumper = event.value;
+        		js_.rightBumper = event.value;
         	}
             break;
         default:

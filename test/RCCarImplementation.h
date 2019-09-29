@@ -13,7 +13,7 @@ class TestRCCar : public RC_Car{
 public:
 	float getServoPW() const {return servoPw_;}
 	int getSpeed() const {return throttle_;}
-	bool getGoingForward() const {return goingForward_;}
+	float getBrakeForce() const {return brakeForce_;}
 	int getUpdateCalledTimes() const {return updateCalled;}
 	int getGear() const { return gearBox.getGear(); }
 

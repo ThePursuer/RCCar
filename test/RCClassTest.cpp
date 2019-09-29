@@ -24,22 +24,31 @@ TEST_F(RCCarFixture, turningTest){
 }
 
 TEST_F(RCCarFixture, accelerateTest){
-	test_car.forward(INT16_MAX);
+	test_car.throttle(INT16_MAX);
 	ASSERT_EQ(rc_test_max_speed, test_car.getSpeed());
-	ASSERT_TRUE(test_car.getGoingForward());
 
-	test_car.backward(INT16_MAX);
-	ASSERT_EQ(rc_test_max_speed, test_car.getSpeed());
-	ASSERT_FALSE(test_car.getGoingForward());
-
-	test_car.forward(0);
+	test_car.throttle(0);
 	ASSERT_EQ(rc_test_max_speed / 2, test_car.getSpeed());
-	ASSERT_TRUE(test_car.getGoingForward());
 
-
-	test_car.backward(INT16_MIN);
+	test_car.throttle(INT16_MIN);
 	ASSERT_EQ(0, test_car.getSpeed());
-	ASSERT_FALSE(test_car.getGoingForward());
+
+	test_car.throttle(INT16_MAX);
+	ASSERT_EQ(rc_test_max_speed, test_car.getSpeed());
+}
+
+TEST_F(RCCarFixture, brakeTest){
+	test_car.brake(INT16_MAX);
+	ASSERT_FLOAT_EQ(1.0, test_car.getBrakeForce());
+
+	test_car.brake(0);
+	ASSERT_NEAR(0.5, test_car.getBrakeForce(), 0.01);
+
+	test_car.brake(INT16_MIN);
+	ASSERT_FLOAT_EQ(0.0, test_car.getBrakeForce());
+
+	test_car.brake(INT16_MAX);
+	ASSERT_FLOAT_EQ(1.0, test_car.getBrakeForce());
 }
 
 TEST_F(RCCarFixture, engineOnTest){

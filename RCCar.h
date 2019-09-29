@@ -27,8 +27,8 @@ public:
 	bool setUpdateCycle(uint16_t milliseconds);//How long between update() calls
 
 	void turn(int16_t val);//accepts all values of unsigned short
-	void forward(int16_t val);
-	void backward(int16_t val);
+	void throttle(int16_t val);
+	void brake(int16_t val);
 	void gearUp();
 	void gearDown();
 	void stop();
@@ -38,7 +38,7 @@ protected:
 
 	volatile float servoPw_;
 	volatile int throttle_;
-	volatile bool goingForward_;
+	volatile float brakeForce_;
 
 	GearBox gearBox;
 private:
