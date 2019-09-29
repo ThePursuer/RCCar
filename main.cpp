@@ -97,15 +97,6 @@ protected:
 		//Update steering
 		pwmWrite(SERVO_PIN, calcTicks(servoPw_));
 
-		if(gearBox.getGear() > -1) {
-			digitalWrite(L298N_HBRIDGE1_PIN, HIGH);
-			digitalWrite(L298N_HBRIDGE2_PIN, LOW);
-		}
-		else {
-			digitalWrite(L298N_HBRIDGE1_PIN, LOW);
-			digitalWrite(L298N_HBRIDGE2_PIN, HIGH);
-		}
-
 		//Downshift if the rpms are too low
 		if(engineSpeed_ < IDLE_RPM && gearBox.getGear() > 0)
 			gearBox.gearDown();
@@ -130,10 +121,19 @@ protected:
 		realSpeed_ = speedToWrite_;//todo: remove this when we have the tach connected
 
 		//Write the speed out to the mdb
-		if(gearBox.getGear() == 0)
+		if(gearBox.getGear() == 0){
 			pwmWrite(L298N_EN_PIN, 0);
-		else
+			pwmWrite(PIN_BASE + 12, 0);
+		}
+		else if(gearBox.getGear() > 0){
 			pwmWrite(L298N_EN_PIN, speedToWrite_);
+			pwmWrite(PIN_BASE + 12, 0);
+		}
+		else{
+			pwmWrite(PIN_BASE + 12, speedToWrite_);
+			pwmWrite(L298N_EN_PIN, 0);
+		}
+
 
 		//Update the audio
 		audio.updateLoad(load_);
@@ -164,6 +164,12 @@ int main(int argc, char **argv) {
 
 	pinMode(L298N_HBRIDGE1_PIN, OUTPUT);
 	pinMode(L298N_HBRIDGE2_PIN, OUTPUT);
+
+
+	digitalWrite(L298N_HBRIDGE1_PIN, HIGH);
+	digitalWrite(L298N_HBRIDGE2_PIN, HIGH);
+	pwmWrite(PIN_BASE + 12, 0);
+	pwmWrite(L298N_EN_PIN, 0);
 
 	// Setup with pinbase 300 and i2c location 0x40
 	pca9685FD = pca9685Setup(PIN_BASE, 0x40, HERTZ);
