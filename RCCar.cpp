@@ -15,10 +15,10 @@
 RC_Car::RC_Car():
 			servoPw_((servoMaxPW_ + servoMinPW_) / 2),
 			throttle_(),
-			brakeForce_(),
 			engineIsOn_(),
 			updateCycle_(20),
-			updateThread_(){
+			updateThread_(),
+			direction_(FORWARD){
 }
 
 RC_Car::~RC_Car() {
@@ -34,11 +34,6 @@ void RC_Car::turn(int16_t val) {
 void RC_Car::throttle(int16_t val) {
 	std::lock_guard<std::mutex> lk(updateMu_);
 	throttle_ = number_map<int16_t, int>(val, INT16_MIN, INT16_MAX, minSpeed_, maxSpeed_);
-}
-
-void RC_Car::brake(int16_t val) {
-	std::lock_guard<std::mutex> lk(updateMu_);
-	brakeForce_ = number_map<int16_t, float>(val, INT16_MIN, INT16_MAX, 0.0, 1.0);
 }
 
 void RC_Car::stop() {
@@ -76,6 +71,10 @@ bool RC_Car::setUpdateCycle(uint16_t milliseconds) {
 	return true;
 }
 
+void RC_Car::direction(Direction val) {
+	direction_ = val;
+}
+
 void RC_Car::loop() {
 	while(engineIsOn_){
 		std::unique_lock<std::mutex> lk(updateMu_);
@@ -83,12 +82,4 @@ void RC_Car::loop() {
 		lk.unlock();
 		usleep(updateCycle_ * 1000);
 	}
-}
-
-void RC_Car::gearUp() {
-	gearBox.gearUp();
-}
-
-void RC_Car::gearDown() {
-	gearBox.gearDown();
 }

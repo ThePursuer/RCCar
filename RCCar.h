@@ -8,14 +8,19 @@
 #ifndef RCCAR_H_
 #define RCCAR_H_
 
-#include "GearBox.h"
 #include <stdint.h>
 #include <thread>
 #include <mutex>
 #include "RC_Settings.h"
 
-/*
- * Abstract class which manages an RCCar. Needs to define update() in order to work properly.
+enum Direction{
+	FORWARD,
+	BACKWARD
+};
+
+/**
+ * \interface RC_Car
+ * \brief Abstract class which manages an RCCar. Update hardware by implementing update().
  */
 class RC_Car {
 public:
@@ -28,19 +33,15 @@ public:
 
 	void turn(int16_t val);//accepts all values of unsigned short
 	void throttle(int16_t val);
-	void brake(int16_t val);
-	void gearUp();
-	void gearDown();
-	void stop();
+	void direction(Direction val);
 
+	void stop();
 protected:
-	virtual void update() = 0;//Hardware specific, needs implementation
+	virtual void update() = 0;
 
 	volatile float servoPw_;
 	volatile int throttle_;
-	volatile float brakeForce_;
-
-	GearBox gearBox;
+	volatile Direction direction_;
 private:
 	void loop();
 

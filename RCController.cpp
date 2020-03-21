@@ -7,45 +7,53 @@
 
 #include "RCController.h"
 #include <string.h>
+#include <iostream>
 
 RC_Controller::RC_Controller(std::shared_ptr<RC_Car> rc):
 	rc_(rc)
 {
+	controller_.l_trig = INT16_MIN;
+	controller_.r_trig = INT16_MIN;
 }
 
 void RC_Controller::handleJoystickEvent(js_event event){
     switch (event.type & ~JS_EVENT_INIT) {
         case JS_EVENT_AXIS:
         	switch (event.number){
-        	case 0://Left Joy X-axis
-        		rc_->turn(event.value);
-        		//js_.joy_left_x = event.value;
+        	case 0://Left Joy X-axis, DEJA VU!
+        		controller_.lx = event.value;
         		break;
-        	case 5://Right Trigger
-        		rc_->throttle(event.value);
-        		//js_.rightTrigger = event.value;
+        	case 5://Right Trigger, DO YOU LIKE... MY CAR?
+        		controller_.r_trig = event.value;
         		break;
-        	case 2://Left Trigger
-        		rc_->brake(event.value);
-        		//js_.leftTrigger = event.value;
+        	case 2://Left Trigger, nobody writes songs about being on the brakes so check it last.
+        		controller_.l_trig = event.value;
         		break;
         	default:
         		break;
         	}
             break;
         case JS_EVENT_BUTTON://No use for buttons yet
-        	if(event.number == 4){
-        		if(event.value && !js_.leftBumper)
-        			rc_->gearDown();
-        		js_.leftBumper = event.value;
-        	}
-        	else if(event.number == 5){
-        		if(event.value && !js_.rightBumper)
-        			rc_->gearUp();
-        		js_.rightBumper = event.value;
-        	}
             break;
         default:
             break;
     }
+    updateCar();
+}
+
+void RC_Controller::updateCar() {
+	rc_->turn(controller_.lx);
+
+	if(BOTH_T_ON(controller_.l_trig, controller_.r_trig))
+		rc_->stop();
+	else if(CHECK_T_ON(controller_.r_trig)){
+		rc_->direction(FORWARD);
+		rc_->throttle(controller_.r_trig);
+	}
+	else if(CHECK_T_ON(controller_.l_trig)){
+		rc_->direction(BACKWARD);
+		rc_->throttle(controller_.l_trig);
+	}
+	else
+		rc_->stop();
 }

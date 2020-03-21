@@ -13,9 +13,8 @@ class TestRCCar : public RC_Car{
 public:
 	float getServoPW() const {return servoPw_;}
 	int getSpeed() const {return throttle_;}
-	float getBrakeForce() const {return brakeForce_;}
 	int getUpdateCalledTimes() const {return updateCalled;}
-	int getGear() const { return gearBox.getGear(); }
+	Direction getDirection() const {return direction_;}
 
 	void update() override {++updateCalled;}//todo mock this function when I can actually read the gmock documentation
 private:

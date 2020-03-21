@@ -21,6 +21,8 @@ public:
 	void updateLoad(float load);
 
 	void setVolume(int vol);
+
+	const int maxRPM() const {return 7500;}
 private:
 	FMOD::Studio::System * sys_;
 	FMOD::Studio::Bank * bank_;

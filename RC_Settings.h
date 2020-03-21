@@ -16,7 +16,7 @@
 
 //PCA9685 related
 #define PIN_BASE 300
-#define SERVO_PIN PIN_BASE
+#define SERVO_PIN (PIN_BASE + 15)
 #define MAX_PWM 4096
 #define HERTZ 330
 
@@ -45,9 +45,9 @@
 #define JOYSTICK_FILENAME "/dev/input/js0"
 
 //Motor related
-#define L298N_HBRIDGE1_PIN 38 //GPIO20
-#define L298N_HBRIDGE2_PIN 40 //GPIO21
-#define L298N_EN_PIN (PIN_BASE + 1)
+#define L298N_HBRIDGE_PIN1 40 //GPIO20
+#define L298N_HBRIDGE_PIN2 38 //GPIO21
+#define L298N_EN_PIN (PIN_BASE + 14)
 #define RPM_DELTA_CLAMP_VALUE (MAX_PWM * 0.015)
 #define FULL_BRAKE_DELTA (MAX_PWM * 0.01)
 #define MAX_REAL_SPEED MAX_PWM //We do not have data yet so we will use this value
